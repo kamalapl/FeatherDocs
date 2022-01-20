@@ -1,13 +1,13 @@
 import socketio
 
-sio=socketio.Server()
+sio = socketio.AsyncServer(cors_allowed_origins='*',async_mode='asgi')
 
-app=socketio.WSGIApp(sio)
+app=socketio.ASGIApp(sio)
 
 @sio.event
-def connect(sid,environ):
+async def connect(sid,environ):
     print(sid,"connected")
 
 @sio.event
-def disconnect(sid, environ):
+async def disconnect(sid):
     print(sid,"disconnected")
