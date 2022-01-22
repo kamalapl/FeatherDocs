@@ -34,8 +34,8 @@ export default function TextEditor() {
   useEffect(() => {
     if (socket == null || quill == null) return
 
-    socket.once("loadDocument", document => {
-      quill.setContents(document)
+    socket.once("loadDocument", async document => {
+      await quill.setContents(document)
       quill.enable()
     })
 

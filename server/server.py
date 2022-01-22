@@ -2,51 +2,67 @@ import socketio
 import pymongo
 import os
 from dotenv import load_dotenv
-from bson.objectid import ObjectId
-import json
+from engineio.payload import Payload
+
+Payload.max_decode_packets = 100
 
 load_dotenv()
 
 client = pymongo.MongoClient(os.getenv('DB_URI'))
-# print(client.list_database_names())
 db = client.TextEditor
 table = db.Document
 
 
 sio = socketio.AsyncServer(cors_allowed_origins='*', async_mode='asgi')
-
 app = socketio.ASGIApp(sio)
 
 
 @sio.event
 async def connect(sid, environ):
-    @sio.event
-    async def getDocument(sid, documentId):
-        document = findOrCreateDocument(documentId)
-        doc=json.loads(document)
-        sio.enter_room(sid,documentId)
-        sio.emit('loadDocument',document["data"],to=sid)
-        
-        @sio.event
-        async def sendChanges(sid,delta):
-            sid.emit('receiveChanges',delta,room=documentId)
-        
-        @sio.event
-        async def saveDocument(sid,data):
-            table.update_one({"_id":ObjectId(documentId)},{"data":data})
+    print(sid, "connected")
+
+
+@sio.event
+async def getDocument(sid, documentId):
+
+    await sio.save_session(sid, {'id': documentId})
+
+    document = await findOrCreateDocument(documentId)
+
+    await sio.emit('loadDocument', document['data'], to=sid)
+    sio.enter_room(sid, documentId)
+
+
+@sio.event
+async def sendChanges(sid, delta):
+    session = await sio.get_session(sid)
+    await sio.emit('receiveChanges', delta, room=session['id'], skip_sid=sid)
+
+
+@sio.event
+async def saveDocument(sid, data):
+    session = await sio.get_session(sid)
+
+    query = {"_id": session['id']}
+    change = {"$set": {"data": data}}
+    table.update_one(query, change)
 
 
 @sio.event
 async def disconnect(sid):
     print(sid, "disconnected")
 
+
 defaultValue = ""
 
 
-def findOrCreateDocument(id):
+async def findOrCreateDocument(id):
     if id is None:
         return
-    document = table.find_one({"_id":ObjectId(id)})
+    document = table.find_one({"_id": id})
+
     if document:
         return document
-    return table.insert_one({"_id":ObjectId(id),"data":defaultValue})
+    table.insert_one({"_id": id, "data": defaultValue})
+    document = table.find_one({"_id": id})
+    return document
