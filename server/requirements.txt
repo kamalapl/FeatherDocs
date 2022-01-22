@@ -1,0 +1,14 @@
+asgiref==3.4.1
+bidict==0.21.4
+click==8.0.3
+h11==0.13.0
+httptools==0.3.0
+pymongo==4.0.1
+python-dotenv==0.19.2
+python-engineio==4.3.1
+python-socketio==5.5.1
+PyYAML==6.0
+uvicorn==0.17.0
+uvloop==0.16.0
+watchgod==0.7
+websockets==10.1
